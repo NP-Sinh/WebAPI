@@ -7,7 +7,36 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Static\**" />
+    <Compile Remove="Views\**" />
+    <Content Remove="Static\**" />
+    <Content Remove="Views\**" />
+    <EmbeddedResource Remove="Static\**" />
+    <EmbeddedResource Remove="Views\**" />
+    <None Remove="Static\**" />
+    <None Remove="Views\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\Images\heo-sua-quay.jpg" />
+    <Content Remove="wwwroot\Images\so-duong-nuong-mo-hanh.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.14">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration" Version="8.0.7" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\Images\heo-sua-quay.jpg" />
+    <None Include="wwwroot\Images\so-duong-nuong-mo-hanh.jpg" />
   </ItemGroup>
 
 </Project>
