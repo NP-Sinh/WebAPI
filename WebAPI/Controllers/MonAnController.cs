@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebAPI.Models;
 using Microsoft.Extensions.Logging;
+using System.IO;
+using System.Text;
 
 namespace WebAPI.Controllers
 {
@@ -51,6 +53,9 @@ namespace WebAPI.Controllers
                         }
                     })
                     .ToListAsync();
+
+                // Xuất danh sách món ăn vào file CSV
+                await ExportMonAnToCSV();
 
                 return monAns;
             }
@@ -132,150 +137,7 @@ namespace WebAPI.Controllers
             }
         }
 
-        // GET: api/MonAn/bestselling
-        [HttpGet("bestselling")]
-        public async Task<ActionResult<IEnumerable<MonAn>>> GetBestSellingFoods()
-        {
-            try
-            {
-                // Lấy món ăn bán chạy nhất dựa trên số lượng đặt hàng
-                var bestSellingFoods = await _context.ChiTietDonHangs
-                    .GroupBy(c => c.MaMonAn)
-                    .Select(g => new { MaMonAn = g.Key, TotalQuantity = g.Sum(c => c.SoLuong) })
-                    .OrderByDescending(x => x.TotalQuantity)
-                    .Take(5)
-                    .Join(_context.MonAns,
-                        bestseller => bestseller.MaMonAn,
-                        monan => monan.MaMonAn,
-                        (bestseller, monan) => new MonAn
-                        {
-                            MaMonAn = monan.MaMonAn,
-                            MaNhaHang = monan.MaNhaHang,
-                            TenMonAn = monan.TenMonAn,
-                            MoTa = monan.MoTa,
-                            Gia = monan.Gia,
-                            UrlhinhAnh = monan.UrlhinhAnh,
-                            NgayTao = monan.NgayTao
-                        })
-                    .ToListAsync();
 
-                if (bestSellingFoods == null || bestSellingFoods.Count == 0)
-                {
-                    return NotFound("Không tìm thấy món ăn bán chạy");
-                }
-
-                return bestSellingFoods;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting best selling foods");
-                return StatusCode(500, "Đã xảy ra lỗi khi lấy món ăn bán chạy nhất");
-            }
-        }
-
-        // GET: api/MonAn/mostexpensive
-        [HttpGet("mostexpensive")]
-        public async Task<ActionResult<IEnumerable<MonAn>>> GetMostExpensiveFoods()
-        {
-            try
-            {
-                var mostExpensiveFoods = await _context.MonAns
-                    .OrderByDescending(m => m.Gia)
-                    .Take(5)
-                    .Select(m => new MonAn
-                    {
-                        MaMonAn = m.MaMonAn,
-                        MaNhaHang = m.MaNhaHang,
-                        TenMonAn = m.TenMonAn,
-                        MoTa = m.MoTa,
-                        Gia = m.Gia,
-                        UrlhinhAnh = m.UrlhinhAnh,
-                        NgayTao = m.NgayTao
-                    })
-                    .ToListAsync();
-
-                if (mostExpensiveFoods == null || mostExpensiveFoods.Count == 0)
-                {
-                    return NotFound("Không tìm thấy món ăn");
-                }
-
-                return mostExpensiveFoods;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting most expensive foods");
-                return StatusCode(500, "Đã xảy ra lỗi khi lấy món ăn đắt nhất");
-            }
-        }
-
-        // GET: api/MonAn/cheapest
-        [HttpGet("cheapest")]
-        public async Task<ActionResult<IEnumerable<MonAn>>> GetCheapestFoods()
-        {
-            try
-            {
-                var cheapestFoods = await _context.MonAns
-                    .OrderBy(m => m.Gia)
-                    .Take(5)
-                    .Select(m => new MonAn
-                    {
-                        MaMonAn = m.MaMonAn,
-                        MaNhaHang = m.MaNhaHang,
-                        TenMonAn = m.TenMonAn,
-                        MoTa = m.MoTa,
-                        Gia = m.Gia,
-                        UrlhinhAnh = m.UrlhinhAnh,
-                        NgayTao = m.NgayTao
-                    })
-                    .ToListAsync();
-
-                if (cheapestFoods == null || cheapestFoods.Count == 0)
-                {
-                    return NotFound("Không tìm thấy món ăn");
-                }
-
-                return cheapestFoods;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting cheapest foods");
-                return StatusCode(500, "Đã xảy ra lỗi khi lấy món ăn rẻ nhất");
-            }
-        }
-
-        // GET: api/MonAn/search?keyword=XXX
-        [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<MonAn>>> SearchFoods(string keyword)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(keyword))
-                    return new List<MonAn>();
-
-                var searchResults = await _context.MonAns
-                    .Where(m => m.TenMonAn.Contains(keyword) || 
-                                (m.MoTa != null && m.MoTa.Contains(keyword)))
-                    .Take(10)
-                    .Select(m => new MonAn
-                    {
-                        MaMonAn = m.MaMonAn,
-                        MaNhaHang = m.MaNhaHang,
-                        TenMonAn = m.TenMonAn,
-                        MoTa = m.MoTa,
-                        Gia = m.Gia,
-                        UrlhinhAnh = m.UrlhinhAnh,
-                        NgayTao = m.NgayTao
-                    })
-                    .ToListAsync();
-
-                return searchResults;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error searching foods with keyword {Keyword}", keyword);
-                return StatusCode(500, "Đã xảy ra lỗi khi tìm kiếm món ăn");
-            }
-        }
 
         // PUT: api/MonAn/5
         [HttpPut("{id}")]
@@ -291,6 +153,7 @@ namespace WebAPI.Controllers
             try
             {
                 await _context.SaveChangesAsync();
+                await ExportMonAnToCSV(); // Xuất dữ liệu ra file CSV sau khi cập nhật
                 return NoContent();
             }
             catch (Exception ex)
@@ -317,6 +180,7 @@ namespace WebAPI.Controllers
                     .Include(m => m.MaNhaHangNavigation)
                     .FirstOrDefaultAsync(m => m.MaMonAn == monAn.MaMonAn);
 
+                await ExportMonAnToCSV(); // Xuất dữ liệu ra file CSV sau khi thêm mới
                 return CreatedAtAction("GetMonAn", new { id = monAn.MaMonAn }, result);
             }
             catch (Exception ex)
@@ -339,11 +203,103 @@ namespace WebAPI.Controllers
                 _context.MonAns.Remove(monAn);
                 await _context.SaveChangesAsync();
 
+                await ExportMonAnToCSV(); // Xuất dữ liệu ra file CSV sau khi xóa
                 return NoContent();
             }
             catch (Exception ex)
             {
                 return StatusCode(500, "Đã xảy ra lỗi khi xóa món ăn");
+            }
+        }
+        // Phương thức xuất dữ liệu món ăn ra file CSV
+        private async Task ExportMonAnToCSV()
+        {
+            try
+            {
+                // Đường dẫn file CSV
+                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Data", "datamonan.csv");
+                
+                // Đảm bảo thư mục tồn tại
+                string directoryPath = Path.GetDirectoryName(filePath);
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
+
+                // Lấy dữ liệu món ăn từ database
+                var monAns = await _context.MonAns
+                    .Include(m => m.MaNhaHangNavigation)
+                    .ToListAsync();
+
+                // Tạo nội dung file CSV
+                StringBuilder csv = new StringBuilder();
+                
+                // Thêm header
+                csv.AppendLine("MaMonAn,MaNhaHang,TenMonAn,MoTa,Gia,UrlHinhAnh,NgayTao,TenNhaHang");
+                
+                // Thêm dữ liệu
+                foreach (var monAn in monAns)
+                {
+                    string tenMonAn = monAn.TenMonAn?.Replace(",", ";");
+                    string moTa = monAn.MoTa?.Replace(",", ";");
+                    string tenNhaHang = monAn.MaNhaHangNavigation?.TenNhaHang?.Replace(",", ";");
+                    
+                    csv.AppendLine($"{monAn.MaMonAn},{monAn.MaNhaHang},\"{tenMonAn}\",\"{moTa}\",{monAn.Gia},\"{monAn.UrlhinhAnh}\",\"{monAn.NgayTao?.ToString("yyyy-MM-dd HH:mm:ss")}\",\"{tenNhaHang}\"");
+                }
+
+                // Ghi file
+                await System.IO.File.WriteAllTextAsync(filePath, csv.ToString(), Encoding.UTF8);
+                _logger.LogInformation($"Đã xuất dữ liệu món ăn ra file CSV: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi xuất dữ liệu món ăn ra file CSV");
+            }
+        }
+
+        // GET: api/MonAn/ExportCSV
+        [HttpGet("ExportCSV")]
+        public async Task<IActionResult> ExportCSVManual()
+        {
+            try
+            {
+                await ExportMonAnToCSV();
+                return Ok("Đã xuất dữ liệu món ăn ra file CSV thành công");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Đã xảy ra lỗi khi xuất dữ liệu món ăn ra file CSV");
+            }
+        }
+
+        // GET: api/MonAn/GetCSVData
+        [HttpGet("GetCSVData")]
+        public async Task<IActionResult> GetCSVData()
+        {
+            try
+            {
+                // Đảm bảo file CSV đã được cập nhật với dữ liệu mới nhất
+                await ExportMonAnToCSV();
+                
+                // Đường dẫn file CSV
+                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Data", "datamonan.csv");
+                
+                // Kiểm tra file tồn tại
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("File CSV không tồn tại");
+                }
+                
+                // Đọc nội dung file
+                string csvContent = await System.IO.File.ReadAllTextAsync(filePath, Encoding.UTF8);
+                
+                // Trả về nội dung file dưới dạng text/csv
+                return Content(csvContent, "text/csv", Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi đọc dữ liệu từ file CSV");
+                return StatusCode(500, "Đã xảy ra lỗi khi đọc dữ liệu từ file CSV");
             }
         }
     }

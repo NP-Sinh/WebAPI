@@ -39,4 +39,8 @@
     <None Include="wwwroot\Images\so-duong-nuong-mo-hanh.jpg" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\Data\" />
+  </ItemGroup>
+
 </Project>
